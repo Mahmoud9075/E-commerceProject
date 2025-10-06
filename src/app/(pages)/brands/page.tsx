@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
-import { BrandI } from "@/interface/brand";
+import { Card, CardContent } from "@/components/ui/card";
 import Loading from "@/app/loading";
 import { RepeatIcon, WifiOff } from "lucide-react";
+import { BrandI } from "@/interface/brand";
 import { colors } from "@/Helpers/colors";
 
 export default function Brands() {
@@ -15,29 +15,34 @@ export default function Brands() {
   const [loading, setLoading] = useState<boolean>(false);
 
   async function fetchBrands() {
+    const controller = new AbortController();
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/get-brands", {
+      const res = await fetch("/api/get-brands", {
         cache: "no-store",
+        signal: controller.signal,
       });
 
-      if (!response.ok) throw new Error("Failed to fetch brands");
+      if (!res.ok) throw new Error("Failed to fetch brands");
 
-      const { brands }: { brands: BrandI[] } = await response.json();
+      const { brands }: { brands: BrandI[] } = await res.json();
       setBrands(brands);
-    
-    } catch (err) {
+    } catch {
       setError("Failed to load brands 😢");
       setBrands(null);
     } finally {
       setLoading(false);
     }
+    return () => controller.abort();
   }
 
   useEffect(() => {
+    // أول تحميل
     fetchBrands();
+    // مفيش dependencies عشان نجيبها مرة واحدة
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <Loading />;
@@ -79,8 +84,10 @@ export default function Brands() {
       </h1>
 
       {/* Brands Grid */}
-      <div className="animate__animated animate__backInUp grid py-5 gap-6 
-                      grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+      <div
+        className="animate__animated animate__backInUp grid py-5 gap-6
+                   grid-cols-[repeat(auto-fit,minmax(200px,1fr))]"
+      >
         {brands.map((brand) => (
           <Link key={brand._id} href={`/brands/${brand._id}`}>
             <Card className="group flex flex-col items-center justify-center p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer">
@@ -96,7 +103,10 @@ export default function Brands() {
 
               {/* Brand Name */}
               <CardContent className="pt-4 text-center">
-                <p style={{ color: colors.accentForeground }} className="text-lg font-semibold tracking-wide text-gray-700 group-hover:text-amber-600 transition-colors duration-300">
+                <p
+                  style={{ color: colors.accentForeground }}
+                  className="text-lg font-semibold tracking-wide text-gray-700 group-hover:text-amber-600 transition-colors duration-300"
+                >
                   {brand.name}
                 </p>
               </CardContent>
